@@ -21,7 +21,6 @@ pub struct ReadabilityRegexps {
     pub whitespace: Regex,
     pub has_content: Regex,
     pub hash_url: Regex,
-    pub srcset_url: Regex,
     pub b64_data_url: Regex,
     pub commas: Regex,
     pub json_ld_article_types: Regex,
@@ -94,10 +93,6 @@ impl ReadabilityRegexps {
             
             hash_url: Regex::new(
                 r"^#.+"
-            ).unwrap(),
-            
-            srcset_url: Regex::new(
-                r"(\S+)(\s+[\d.]+[xw])?(\s*(?:,|$))"
             ).unwrap(),
             
             b64_data_url: Regex::new(

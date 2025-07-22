@@ -415,30 +415,7 @@ impl Readability {
         None
     }
     
-    fn initialize_node_scores(&mut self) {
-        // Score elements based on tag names and class weights
-        let all_elements_selector = Selector::parse("*").unwrap();
-        
-        for element in self.document.select(&all_elements_selector) {
-            let tag_name = element.value().name().to_uppercase();
-            let mut content_score = 0.0;
-            
-            // Initialize based on tag type (matching JavaScript _initializeNode)
-            match tag_name.as_str() {
-                "DIV" => content_score = 5.0,
-                "PRE" | "TD" | "BLOCKQUOTE" => content_score = 3.0,
-                "ADDRESS" | "OL" | "UL" | "DL" | "DD" | "DT" | "LI" | "FORM" => content_score = -3.0,
-                "H1" | "H2" | "H3" | "H4" | "H5" | "H6" | "TH" => content_score = -5.0,
-                _ => content_score = 0.0,
-            }
-            
-            // Add class weight
-            content_score += self.get_class_weight(&element);
-            
-            // Store score in element's data attribute (conceptually)
-            // In practice, we'll need to maintain a separate scoring map
-        }
-    }
+
     
     fn get_class_weight(&self, element: &ElementRef) -> f64 {
         // Return 0 if weight classes flag is disabled
@@ -509,7 +486,7 @@ impl Readability {
             }
             
             // Initialize candidates if not already done
-            for (ancestor, level) in &ancestors {
+            for (ancestor, _level) in &ancestors {
                 let ancestor_id = self.get_element_id(ancestor);
                 if !candidate_map.contains_key(&ancestor_id) {
                     let content_score = self.initialize_candidate_score(ancestor);
@@ -611,15 +588,7 @@ impl Readability {
     
 
     
-    fn get_tag_score_multiplier(&self, element: &ElementRef) -> f64 {
-        match element.value().name() {
-            "div" => 5.0,
-            "pre" | "td" | "blockquote" => 3.0,
-            "address" | "ol" | "ul" | "dl" | "dd" | "dt" | "li" | "form" => -3.0,
-            "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "th" => -5.0,
-            _ => 1.0,
-        }
-    }
+
     
     fn select_best_candidate<'a>(&self, candidates: &'a [(ElementRef<'a>, f64)]) -> Option<ElementRef<'a>> {
         if candidates.is_empty() {
@@ -669,63 +638,7 @@ impl Readability {
         Some(best_candidate)
     }
     
-    fn aggregate_sibling_content<'a>(&self, best_candidate: &ElementRef<'a>, _parent: &ElementRef, _threshold_score: f64) -> ElementRef<'a> {
-        // For now, return the best candidate as-is
-        // In a full implementation, this would check siblings and potentially
-        // create a new container with aggregated content
-        *best_candidate
-    }
-    
-    fn filter_unlikely_candidates<'a>(&self, candidates: Vec<(ElementRef<'a>, f64)>) -> Vec<(ElementRef<'a>, f64)> {
-        candidates.into_iter().filter(|(element, _score)| {
-            // Check if element has unlikely class/id patterns
-            if let Some(class_name) = element.value().attr("class") {
-                if is_unlikely_candidate(class_name) {
-                    return false;
-                }
-            }
-            
-            if let Some(id) = element.value().attr("id") {
-                if is_unlikely_candidate(id) {
-                    return false;
-                }
-            }
-            
-            // Check for extraneous content patterns
-            let text = get_inner_text(element, true);
-            if is_extraneous_content(&text) {
-                return false;
-            }
-            
-            // Check if it's a share element
-            if is_share_element(element.value().name()) {
-                return false;
-            }
-            
-            // Filter out candidates that are directly navigation elements
-            let tag_name = element.value().name();
-            if matches!(tag_name, "nav" | "aside" | "header" | "footer") {
-                if self.options.debug {
-                    println!("Filtering out direct navigation element: {}", tag_name);
-                }
-                return false;
-            }
-            
-            // Filter out divs with navigation-related classes
-            if tag_name == "div" {
-                if let Some(class_name) = element.value().attr("class") {
-                    if class_name.contains("sidebar") || class_name.contains("navigation") {
-                        if self.options.debug {
-                            println!("Filtering out navigation div: {}", class_name);
-                        }
-                        return false;
-                    }
-                }
-            }
-            
-            true
-        }).collect()
-    }
+
     
     fn calculate_candidate_score(&self, element: &ElementRef) -> f64 {
         let text = get_inner_text(element, true);
@@ -906,48 +819,7 @@ impl Readability {
         cleaned_content.trim().to_string()
     }
     
-    fn clean_text_content(&self, content: &str) -> String {
-        // Remove excessive whitespace
-        let re_whitespace = regex::Regex::new(r"\s{2,}").unwrap();
-        let content = re_whitespace.replace_all(content, " ");
-        
-        // Remove common unwanted patterns
-        let re_ads = regex::Regex::new(r"(?i)\b(advertisement|sponsored|ads?)\b").unwrap();
-        let content = re_ads.replace_all(&content, "");
-        
-        // Trim and return
-        content.trim().to_string()
-    }
-    
-    fn clean_conditionally(&mut self, _content: &mut String) {
-        // Remove elements conditionally based on content quality
-        if self.options.debug {
-            println!("Cleaning content conditionally");
-        }
-    }
-    
-    fn fix_relative_uris(&mut self, _content: &mut String) {
-        // Convert relative URIs to absolute URIs
-        if let Some(base_uri) = &self.base_uri {
-            if self.options.debug {
-                println!("Fixing relative URIs with base: {}", base_uri);
-            }
-        }
-    }
-    
-    fn simplify_nested_elements(&mut self, _content: &mut String) {
-        // Simplify unnecessarily nested elements
-        if self.options.debug {
-            println!("Simplifying nested elements");
-        }
-    }
-    
-    fn clean_classes(&mut self, _content: &mut String) {
-        // Remove CSS classes except those to preserve
-        if self.options.debug {
-            println!("Cleaning CSS classes");
-        }
-    }
+
 
     fn get_inner_text_from_ref(&self, element: &ElementRef, normalize_spaces: bool) -> String {
         let text = element.text().collect::<Vec<_>>().join(" ");
@@ -2013,7 +1885,7 @@ mod tests {
         ];
         
         for test_case in edge_cases {
-            if let Ok((source, _, expected_metadata)) = load_test_case(test_case) {
+            if let Ok((source, _, _expected_metadata)) = load_test_case(test_case) {
                 let mut parser = Readability::new_with_base_uri(&source, "http://fakehost/test/page.html", Some(ReadabilityOptions {
                     debug: false,
                     char_threshold: 100,  // Lower threshold for edge cases
