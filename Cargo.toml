@@ -1,0 +1,32 @@
+[package]
+name = "readability-rust"
+version = "0.1.0"
+edition = "2021"
+authors = ["Mozilla Readability Rust Port"]
+description = "A Rust port of Mozilla's Readability library for extracting article content from web pages"
+license = "Apache-2.0"
+repository = "https://github.com/dreampuf/readability-rust"
+keywords = ["html", "parsing", "readability", "content-extraction", "article"]
+categories = ["parser-implementations", "text-processing", "web-programming"]
+
+[[bin]]
+name = "readability-rust"
+path = "src/main.rs"
+
+[lib]
+name = "readability_rust"
+path = "src/lib.rs"
+
+[dependencies]
+scraper = "0.18"
+html5ever = "0.26"
+regex = "1.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+clap = { version = "4.4", features = ["derive"] }
+url = "2.5"
+thiserror = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
